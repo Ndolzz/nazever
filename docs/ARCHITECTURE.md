@@ -48,6 +48,11 @@ wajar walau dibatasi expiry. Desain di sini:
 
 ## 4. Known limitations di phase ini (didokumentasikan, bukan disembunyikan)
 
+- **Gradle Wrapper (`gradlew`) belum di-commit.** CI (`.github/workflows/build.yml`)
+  menginstal Gradle langsung lewat `gradle/actions/setup-gradle`, jadi
+  tidak terpengaruh. Untuk build lokal (Termux/Android Studio), commit
+  wrapper resmi begitu ada akses network: `gradle wrapper --gradle-version 8.10.2`,
+  lalu commit `gradlew`, `gradlew.bat`, dan `gradle/wrapper/`.
 - `request_unpair` saat ini memutus pairing sepihak (siapa pun di pair
   bisa unpair langsung). Alur "kedua user harus konfirmasi" direncanakan
   di phase Privacy Center, butuh tabel `pair_unpair_requests` baru.

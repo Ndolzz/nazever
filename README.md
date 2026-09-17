@@ -37,7 +37,24 @@ supabase/       schema.sql + Edge Functions (Deno/TS)
    `SUPABASE_URL`, `SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY`.
 5. Salin `local.properties.example` → `local.properties`, isi
    `SUPABASE_URL` dan `SUPABASE_ANON_KEY` (anon key saja, bukan service role).
-6. `./gradlew :app:assembleDebug`
+6. Build lokal: `gradle :app:assembleDebug` (Gradle Wrapper belum
+   di-commit — lihat catatan di `.github/workflows/build.yml` — jadi
+   pastikan Gradle 8.10.x terinstal, atau build lewat CI di bawah ini).
+
+## Build otomatis (GitHub Actions)
+
+Setiap push/PR ke `main` otomatis build APK debug lewat
+`.github/workflows/build.yml`. Sebelum push pertama kali, set dua
+secret di repo GitHub: **Settings → Secrets and variables → Actions →
+New repository secret**:
+
+- `SUPABASE_URL`
+- `SUPABASE_ANON_KEY`
+
+(Isi keduanya dengan anon key dari dashboard Supabase — bukan service
+role key.) Setelah workflow selesai, APK bisa diunduh dari tab
+**Actions** pada run terkait, di bagian **Artifacts** →
+`nazever-debug-apk`.
 
 ## Keamanan
 
