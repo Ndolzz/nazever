@@ -51,6 +51,19 @@ jobs:
           gradle-version: "8.10.2"
           cache-read-only: false
 
+      - name: Validate build secrets
+        shell: bash
+        run: |
+          test -n "$SUPABASE_URL" || {
+            echo "::error::SUPABASE_URL is not configured"
+            exit 1
+          }
+
+          test -n "$SUPABASE_ANON_KEY" || {
+            echo "::error::SUPABASE_ANON_KEY is not configured"
+            exit 1
+          }
+
       - name: Build debug APK
         run: gradle :app:assembleDebug --stacktrace
 
