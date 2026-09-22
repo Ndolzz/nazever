@@ -1,8 +1,17 @@
 package com.naze.nazever
 
-import android.app.Activity
+import android.os.Bundle
+import androidx.activity.ComponentActivity
+import androidx.activity.compose.setContent
+import com.naze.nazever.ui.showcase.DesignSystemShowcase
 
 /**
- * Temporary entry point. Real Compose UI arrives with TASK-004 (design system) and TASK-006.
+ * Temporary TASK-004 entry point: hosts the design-system showcase only.
+ * Real navigation arrives with TASK-006+.
  */
-class MainActivity : Activity()
+class MainActivity : ComponentActivity() {
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+        setContent { DesignSystemShowcase() }
+    }
+}
