@@ -1,0 +1,16 @@
+*.iml
+.gradle/
+/local.properties
+/.idea/
+.DS_Store
+/build
+/captures
+.externalNativeBuild/
+.cxx/
+*/build/
+*/.cxx/
+# Secrets must never be committed (SR-04.1)
+*.jks
+*.keystore
+.env
+*.env
