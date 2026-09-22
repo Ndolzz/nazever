@@ -361,8 +361,7 @@ create policy couples_select on public.couples
   for select to authenticated
   using (public.is_couple_member(id));
 
-creat
-e policy couples_update on public.couples
+create
   for update to authenticated
   using (public.is_couple_member(id))
   with check (public.is_couple_member(id));
@@ -470,7 +469,7 @@ create policy message_attachments_insert on public.message_attachments
   for insert to authenticated
   with check (
     exists (
-      select 1 from public.messages m
+      select
        where m.id = message_id
          and m.sender_id = auth.uid()
          and public.is_couple_member(m.couple_id)
