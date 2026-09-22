@@ -38,7 +38,8 @@ $$;
 -- 1:1 with auth.users. Passwords live in Supabase Auth — never stored here.
 -- ----------------------------------------------------------------------------
 create table if not exists public.profiles (
-  user_id      uuid primary key references auth.users (id) on delete cascade,
+  user_id      uuid primary key references auth.
+users (id) on delete cascade,
   username     text not null check (char_length(username) between 3 and 32),
   display_name text not null check (char_length(display_name) between 1 and 64),
   avatar_url   text,
@@ -81,7 +82,8 @@ create trigger couples_set_updated_at
 -- unpair is modelled by deleting membership rows, then inserting new ones).
 -- ----------------------------------------------------------------------------
 create table if not exists public.couple_members (
-  couple_id  uuid not null references public.couples (id) on delete cascade,
+  couple_id  uuid not null references public.
+couples (id) on delete cascade,
   user_id    uuid not null references auth.users (id) on delete cascade,
   role       text not null default 'member' check (role in ('member')),
   joined_at  timestamptz not null default now(),
@@ -136,7 +138,8 @@ as $$
     select 1
       from public.couple_members
      where couple_id = target_couple_id
-       and user_id = auth.uid()
+       and user_id = aut
+h.uid()
   );
 $$;
 
@@ -186,7 +189,8 @@ create index if not exists pairing_requests_invitee_idx
   on public.pairing_requests (invitee_id);
 create index if not exists pairing_requests_expires_idx
   on public.pairing_requests (expires_at);
-create unique index if not exists pairing_requests_code_hash_active_key
+create
+ unique index if not exists pairing_requests_code_hash_active_key
   on public.pairing_requests (code_hash)
   where status = 'pending';
 
@@ -229,7 +233,8 @@ create table if not exists public.conversations (
   updated_at timestamptz not null default now()
 );
 
-create trigger conversations_set_updated_at
+create trigger conversa
+tions_set_updated_at
   before update on public.conversations
   for each row execute function public.set_updated_at();
 
@@ -268,7 +273,8 @@ create index if not exists messages_sender_idx
   on public.messages (sender_id);
 
 -- ----------------------------------------------------------------------------
--- 10. media (FR-04, FR-05) and message_attachments (design §3)
+-- 10. media (FR-04, FR-05) and message_attac
+hments (design §3)
 -- Only METADATA lives here; binary content lives in Supabase Storage.
 -- once_viewed_at drives server-side block of re-access (FR-05.3, edge fn).
 -- ----------------------------------------------------------------------------
@@ -312,7 +318,8 @@ create table if not exists public.privacy_settings (
   updated_at        timestamptz not null default now()
 );
 
-create trigger privacy_settings_set_updated_at
+create trigger privacy_se
+ttings_set_updated_at
   before update on public.privacy_settings
   for each row execute function public.set_updated_at();
 
@@ -354,7 +361,8 @@ create policy couples_select on public.couples
   for select to authenticated
   using (public.is_couple_member(id));
 
-create policy couples_update on public.couples
+creat
+e policy couples_update on public.couples
   for update to authenticated
   using (public.is_couple_member(id))
   with check (public.is_couple_member(id));
@@ -405,7 +413,8 @@ create policy conversations_select on public.conversations
 --    no join needed).
 --  * insert: must be a member AND sender_id must be auth.uid() — a user can
 --    never forge a message as someone else (SR-02.2), and the conversation
---    must belong to the same couple (no cross-couple injection).
+--    must bel
+ong to the same couple (no cross-couple injection).
 --  * update: only the sender (edit + tombstone soft delete, design §6).
 --    WITH CHECK keeps the row valid after edit.
 --  * delete: no policy — hard delete is reserved for service_role only.
