@@ -4,6 +4,8 @@ name: CI
 # NOTE: gradle/wrapper/gradle-wrapper.jar is a binary that could not be committed via
 # the available tooling, so it is regenerated in the clean environment by 'gradle
 # wrapper' (authoritative source: gradle/wrapper/gradle-wrapper.properties, Gradle 8.7).
+# NOTE: the Android SDK is preinstalled on GitHub-hosted ubuntu-latest runners
+# (ANDROID_HOME is set and licenses accepted), so no SDK setup step is needed.
 
 on:
   push:
@@ -28,8 +30,6 @@ jobs:
           distribution: temurin
           java-version: '17'
 
-      - name: Set up Android SDK
-        uses: android-actions/setup-android@v3
 
       - name: Set up Gradle
         uses: gradle/actions/setup-gradle@v4
@@ -75,5 +75,6 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: debug-apk
-          path: app/build/outputs/apk/debug/*.apk
+          path: app/build/outputs/apk/d
+ebug/*.apk
           if-no-files-found: error
