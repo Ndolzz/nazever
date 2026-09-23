@@ -25,16 +25,27 @@ class AuthErrorMapperTest {
         assertEquals(AuthError.Unknown, AuthErrorMapper.fromException(RuntimeException("boom")))
     }
 
+    /**
+     * Every user-facing error message must be a fixed, safe string:
+     * no token or credential material may ever leak into it. Uses an
+     * explicit list instead of kotlin-reflect (not on the classpath).
+     */
     @Test
     fun messagesNeverContainTokenMaterial() {
         val token = "secret-token-value-123"
-        val error = AuthErrorMapper.fromException(AuthHttpException(401))
-        for (values in AuthError::class.sealedSubclasses) {
-            val instance = values.objectInstance
-            if (instance != null) {
-                assertTrue(!instance.userMessage.contains(token))
-            }
+        val allErrors = listOf(
+            AuthError.Network,
+            AuthError.InvalidCredentials,
+            AuthError.EmailTaken,
+            AuthError.WeakPassword,
+            AuthError.InvalidEmail,
+            AuthError.TooManyRequests,
+            AuthError.Unauthorized,
+            AuthError.Unknown
+        )
+        for (error in allErrors) {
+            assertTrue(!error.userMessage.contains(token))
         }
-        assertTrue(!error.userMessage.contains(token))
+        assertTrue(!AuthErrorMapper.fromException(AuthHttpException(401)).userMessage.contains(token))
     }
 }
