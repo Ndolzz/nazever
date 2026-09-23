@@ -2,10 +2,12 @@ name: CI
 
 # TASK-002 (NFR-04): build, test, lint pipeline for NazeVer.
 # NOTE: gradle/wrapper/gradle-wrapper.jar is a binary that could not be committed via
-# the available tooling, so it is regenerated in the clean environment by 'gradle
-# wrapper' (authoritative source: gradle/wrapper/gradle-wrapper.properties, Gradle 8.7).
+# the available tooling, so it is regenerated in the clean environment by gradle
+# wrapper (authoritative source: gradle/wrapper/gradle-wrapper.properties, Gradle 8.7).
 # NOTE: the Android SDK is preinstalled on GitHub-hosted ubuntu-latest runners
 # (ANDROID_HOME is set and licenses accepted), so no SDK setup step is needed.
+# TASK-007: gradle output is tee-ed to log files and surfaced as annotations on
+# failure so compile/test errors are visible without log download access.
 
 on:
   push:
@@ -45,13 +47,34 @@ jobs:
         run: ./gradlew --version
 
       - name: Run unit tests
-        run: ./gradlew testDebugUnitTest
+        shell: bash
+        run: |
+          set -o pipefail
+          ./gradlew testDebugUnitTest 2>&1 | tee gradle-test.log
 
       - name: Run Android lint
-        run: ./gradlew lintDebug
+        shell: bash
+        run: |
+          set -o pipefail
+          ./gradlew lintDebug 2>&1 | tee gradle-lint.log
 
       - name: Build debug APK
-        run: ./gradlew assembleDebug
+        shell: bash
+        run: |
+          set -o pipefail
+          ./gradlew assembleDebug 2>&1 | tee gradle-assemble.log
+
+      - name: Surface Gradle errors
+        if: failure()
+        shell: bash
+        run: |
+          for log in gradle-test.log gradle-lint.log gradle-assemble.log; do
+            if [ -f "$log" ]; then
+              grep -E "^e: |error: |FAILURE: |What went wrong|Execution failed|Caused by:|Compilation error" "$log" | head -80 | while IFS= read -r line; do
+                printf '::error file=%s::%s\n' "$log" "${line:0:240}" || true
+              done
+            fi
+          done
 
       - name: Upload test reports
         if: always()
