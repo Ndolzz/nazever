@@ -2,6 +2,7 @@ package com.naze.nazever.ui.auth
 
 import com.naze.nazever.core.network.auth.AuthError
 import com.naze.nazever.core.network.auth.AuthResult
+import com.naze.nazever.core.network.session.DeviceSessionInfo
 import com.naze.nazever.core.security.SessionData
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -14,13 +15,20 @@ import org.junit.Test
 
 class FakeAuthGateway : AuthGateway {
     val session: SessionData =
-        SessionData("access-token", "refresh-token", 1000L, "user-1", "user@example.com")
+        SessionData("access-token", "refresh-token", 1000L, "user-1", "user@example.com", "session-A", "device-A")
     var failSignIn = false
     var failSignUp = false
     var sessionAvailable = false
+    var restoreResult: SessionData? = session
     var signedOut = false
     var signInCalls = 0
     var signUpCalls = 0
+    var listCalls = 0
+    val revokedSessions = mutableListOf<String>()
+    var deviceSessions = listOf(
+        DeviceSessionInfo("session-A", "device-A", "Pixel 8", "android", "2026-09-20T10:00:00Z", "2026-09-19T10:00:00Z", null),
+        DeviceSessionInfo("session-B", "device-B", "Galaxy S24", "android", "2026-09-21T10:00:00Z", "2026-09-18T10:00:00Z", null)
+    )
 
     override suspend fun signIn(email: String, password: String): AuthResult {
         signInCalls++
@@ -45,9 +53,22 @@ class FakeAuthGateway : AuthGateway {
     }
 
     override suspend fun restoreSession(): SessionData? =
-        if (sessionAvailable) session else null
+        if (sessionAvailable) restoreResult else null
 
     override fun hasSession(): Boolean = sessionAvailable
+
+    override suspend fun listDeviceSessions(): List<DeviceSessionInfo> {
+        listCalls++
+        return deviceSessions.map { d ->
+            d.copy(
+                revokedAt = if (revokedSessions.contains(d.sessionId)) "2026-09-23T00:00:00Z" else d.revokedAt
+            )
+        }
+    }
+
+    override suspend fun revokeDeviceSession(sessionId: String) {
+        revokedSessions.add(sessionId)
+    }
 }
 
 class AuthViewModelTest {
@@ -75,6 +96,20 @@ class AuthViewModelTest {
         val vm = viewModel(gateway)
         assertEquals(AuthScreen.Home, vm.uiState.value.screen)
         assertEquals("user@example.com", vm.uiState.value.loggedInEmail)
+        assertEquals("session-A", vm.uiState.value.currentSessionId)
+    }
+
+    @Test
+    fun revokedSessionRestoreKeepsUserOnLogin() {
+        // Repository cleared the local store after revocation detection:
+        // hasSession() is true but restoreSession() returns null.
+        val gateway = FakeAuthGateway().apply {
+            sessionAvailable = true
+            restoreResult = null
+        }
+        val vm = viewModel(gateway)
+        assertEquals(AuthScreen.Login, vm.uiState.value.screen)
+        assertNull(vm.uiState.value.loggedInEmail)
     }
 
     @Test
@@ -97,6 +132,7 @@ class AuthViewModelTest {
         vm.signIn()
         assertEquals(AuthScreen.Home, vm.uiState.value.screen)
         assertEquals("user@example.com", vm.uiState.value.loggedInEmail)
+        assertEquals("session-A", vm.uiState.value.currentSessionId)
         assertFalse(vm.uiState.value.isLoading)
         // Password is cleared from UI state after success.
         assertEquals("", vm.uiState.value.password)
@@ -160,6 +196,7 @@ class AuthViewModelTest {
         assertTrue(gateway.signedOut)
         assertEquals("", vm.uiState.value.email)
         assertNull(vm.uiState.value.loggedInEmail)
+        assertNull(vm.uiState.value.currentSessionId)
     }
 
     @Test
@@ -173,5 +210,43 @@ class AuthViewModelTest {
         assertNotNull(message)
         assertFalse(message!!.contains("secret-password-value"))
         assertFalse(message.contains("user@example.com"))
+    }
+
+    // ===== TASK-007: device management =====
+
+    @Test
+    fun devicesListLoads() {
+        val gateway = FakeAuthGateway()
+        val vm = filledLoginViewModel(gateway)
+        vm.signIn()
+        vm.goToDevices()
+        val state = vm.uiState.value
+        assertEquals(AuthScreen.Devices, state.screen)
+        assertEquals(2, state.devices.size)
+        assertFalse(state.devicesLoading)
+        assertEquals("session-A", state.currentSessionId)
+    }
+
+    @Test
+    fun revokeRefreshesList() {
+        val gateway = FakeAuthGateway()
+        val vm = filledLoginViewModel(gateway)
+        vm.signIn()
+        vm.goToDevices()
+        vm.revokeDevice("session-B")
+        assertTrue(gateway.revokedSessions.contains("session-B"))
+        val state = vm.uiState.value
+        assertEquals(2, state.devices.size)
+        assertTrue(state.devices.first { it.sessionId == "session-B" }.isRevoked)
+    }
+
+    @Test
+    fun selfRevokeIsBlocked() {
+        val gateway = FakeAuthGateway()
+        val vm = filledLoginViewModel(gateway)
+        vm.signIn()
+        vm.goToDevices()
+        vm.revokeDevice("session-A")
+        assertFalse(gateway.revokedSessions.contains("session-A"))
     }
 }

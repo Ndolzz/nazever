@@ -13,7 +13,8 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
 /**
- * ViewModel for the login / register / logout flow (TASK-006).
+ * ViewModel for the login / register / logout / device-management flow
+ * (TASK-006, TASK-007).
  *
  * The scope is injectable so JVM unit tests never touch
  * Dispatchers.Main; production uses the default Main scope.
@@ -36,7 +37,11 @@ class AuthViewModel(
                 val session = gateway.restoreSession()
                 if (session != null) {
                     _uiState.update {
-                        it.copy(screen = AuthScreen.Home, loggedInEmail = session.email)
+                        it.copy(
+                            screen = AuthScreen.Home,
+                            loggedInEmail = session.email,
+                            currentSessionId = session.sessionId
+                        )
                     }
                 }
             }
@@ -102,6 +107,51 @@ class AuthViewModel(
         }
     }
 
+    /** Opens the device management screen and loads the session list. */
+    fun goToDevices() {
+        _uiState.update {
+            it.copy(
+                screen = AuthScreen.Devices,
+                devices = emptyList(),
+                devicesLoading = true,
+                devicesMessage = null
+            )
+        }
+        scope.launch {
+            try {
+                val devices = gateway.listDeviceSessions()
+                _uiState.update { it.copy(devicesLoading = false, devices = devices) }
+            } catch (e: Exception) {
+                _uiState.update {
+                    it.copy(devicesLoading = false, devicesMessage = "Tidak dapat memuat daftar perangkat.")
+                }
+            }
+        }
+    }
+
+    fun backToHome() {
+        _uiState.update {
+            it.copy(screen = AuthScreen.Home, devices = emptyList(), devicesMessage = null)
+        }
+    }
+
+    /**
+     * Revokes another device's session (FR-01.6). The current device
+     * cannot be revoked through this path — it must use signOut.
+     */
+    fun revokeDevice(sessionId: String) {
+        if (sessionId == _uiState.value.currentSessionId) return
+        scope.launch {
+            try {
+                gateway.revokeDeviceSession(sessionId)
+                val devices = gateway.listDeviceSessions()
+                _uiState.update { it.copy(devices = devices, devicesMessage = null) }
+            } catch (e: Exception) {
+                _uiState.update { it.copy(devicesMessage = "Gagal mencabut perangkat.") }
+            }
+        }
+    }
+
     private fun launchAuth(block: suspend () -> AuthResult) {
         _uiState.update { it.copy(isLoading = true, authMessage = null) }
         scope.launch {
@@ -112,6 +162,7 @@ class AuthViewModel(
                         isLoading = false,
                         screen = AuthScreen.Home,
                         loggedInEmail = result.session.email,
+                        currentSessionId = result.session.sessionId,
                         password = "",
                         confirmPassword = "",
                         passwordError = null,

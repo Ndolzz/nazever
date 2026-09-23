@@ -2,6 +2,7 @@ package com.naze.nazever.core.network.auth
 
 import com.naze.nazever.core.security.SessionData
 import com.naze.nazever.core.security.SessionStore
+import kotlinx.coroutines.runBlocking
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotNull
@@ -78,7 +79,7 @@ class NazeVerAuthRepositoryTest {
     ): NazeVerAuthRepository = NazeVerAuthRepository(api, store, { now })
 
     @Test
-    fun signInSavesSession() {
+    fun signInSavesSession() = runBlocking {
         val store = FakeSessionStore()
         val result = repo(store).signIn("a@example.com", "password123")
         assertTrue(result is AuthResult.Success)
@@ -88,7 +89,7 @@ class NazeVerAuthRepositoryTest {
     }
 
     @Test
-    fun signUpSavesSession() {
+    fun signUpSavesSession() = runBlocking {
         val store = FakeSessionStore()
         val result = repo(store).signUp("a@example.com", "password123")
         assertTrue(result is AuthResult.Success)
@@ -96,7 +97,7 @@ class NazeVerAuthRepositoryTest {
     }
 
     @Test
-    fun signInFailureMapsErrorAndSavesNothing() {
+    fun signInFailureMapsErrorAndSavesNothing() = runBlocking {
         val api = FakeRemoteApi().apply { failSignInWith = AuthHttpException(401) }
         val store = FakeSessionStore()
         val result = repo(store, api).signIn("a@example.com", "wrong")
@@ -106,7 +107,7 @@ class NazeVerAuthRepositoryTest {
     }
 
     @Test
-    fun signOutClearsStoreEvenWhenRemoteFails() {
+    fun signOutClearsStoreEvenWhenRemoteFails() = runBlocking {
         val api = FakeRemoteApi().apply { failSignOutWith = java.io.IOException("offline") }
         val store = FakeSessionStore()
         val repository = repo(store, api)
@@ -116,13 +117,13 @@ class NazeVerAuthRepositoryTest {
     }
 
     @Test
-    fun restoreSessionWithEmptyStoreReturnsNullWithoutCrash() {
+    fun restoreSessionWithEmptyStoreReturnsNullWithoutCrash() = runBlocking {
         val store = FakeSessionStore()
         assertNull(repo(store).restoreSession())
     }
 
     @Test
-    fun restoreSessionWithValidTokenReturnsSession() {
+    fun restoreSessionWithValidTokenReturnsSession() = runBlocking {
         val store = FakeSessionStore()
         val api = FakeRemoteApi()
         val repository = repo(store, api)
@@ -132,7 +133,7 @@ class NazeVerAuthRepositoryTest {
     }
 
     @Test
-    fun restoreSessionRefreshesExpiredToken() {
+    fun restoreSessionRefreshesExpiredToken() = runBlocking {
         val store = FakeSessionStore()
         val api = FakeRemoteApi()
         val repository = repo(store, api)
@@ -146,7 +147,7 @@ class NazeVerAuthRepositoryTest {
     }
 
     @Test
-    fun restoreSessionWithRevokedRefreshTokenClearsStore() {
+    fun restoreSessionWithRevokedRefreshTokenClearsStore() = runBlocking {
         val store = FakeSessionStore()
         val api = FakeRemoteApi()
         repo(store, api).signIn("a@example.com", "password123")
@@ -157,17 +158,17 @@ class NazeVerAuthRepositoryTest {
     }
 
     @Test
-    fun failureMessagesNeverContainTokens() {
+    fun failureMessagesNeverContainTokens() = runBlocking {
         val api = FakeRemoteApi().apply { failSignInWith = AuthHttpException(401) }
-        val result = repo(FakeSessionStore(), api).signIn("a@example.com", "secret-token-value-123")
+        val result = repo(FakeSessionStore(), api).signIn("secret-token@example.com", "secret-token-value")
         assertTrue(result is AuthResult.Failure)
         val message = (result as AuthResult.Failure).error.userMessage
-        assertTrue(!message.contains("secret-token-value-123"))
-        assertTrue(!message.contains("a@example.com"))
+        assertFalse(message.contains("secret-token-value"))
+        assertFalse(message.contains("secret-token@example.com"))
     }
 
     @Test
-    fun transientRefreshFailureKeepsSession() {
+    fun transientRefreshFailureKeepsSession() = runBlocking {
         val store = FakeSessionStore()
         val api = FakeRemoteApi()
         repo(store, api).signIn("a@example.com", "password123")

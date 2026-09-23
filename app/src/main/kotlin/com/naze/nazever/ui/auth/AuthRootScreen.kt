@@ -15,12 +15,11 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.unit.dp
 import com.naze.nazever.ui.theme.NazeVerDimens
 import com.naze.nazever.ui.theme.NazeVerType
 
 /**
- * Root of the TASK-006 auth flow. Simple state-based routing; full
+ * Root of the auth flow (TASK-006/007). Simple state-based routing; full
  * navigation arrives with later feature tasks.
  */
 @Composable
@@ -44,14 +43,24 @@ fun AuthRootScreen(viewModel: AuthViewModel) {
         )
         AuthScreen.Home -> HomeScreen(
             loggedInEmail = state.loggedInEmail,
-            onSignOut = viewModel::signOut
+            onSignOut = viewModel::signOut,
+            onShowDevices = viewModel::goToDevices
+        )
+        AuthScreen.Devices -> DevicesScreen(
+            state = state,
+            onBack = viewModel::backToHome,
+            onRevoke = viewModel::revokeDevice
         )
     }
 }
 
 /** Placeholder home shown when signed in (real home arrives in later tasks). */
 @Composable
-fun HomeScreen(loggedInEmail: String?, onSignOut: () -> Unit) {
+fun HomeScreen(
+    loggedInEmail: String?,
+    onSignOut: () -> Unit,
+    onShowDevices: () -> Unit
+) {
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -66,6 +75,13 @@ fun HomeScreen(loggedInEmail: String?, onSignOut: () -> Unit) {
             style = NazeVerType.bodySecondary
         )
         Spacer(modifier = Modifier.height(NazeVerDimens.spaceXL))
+        Button(
+            onClick = onShowDevices,
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Text("Perangkat Aktif", style = NazeVerType.button)
+        }
+        Spacer(modifier = Modifier.height(NazeVerDimens.spaceS))
         Button(
             onClick = onSignOut,
             modifier = Modifier.fillMaxWidth()

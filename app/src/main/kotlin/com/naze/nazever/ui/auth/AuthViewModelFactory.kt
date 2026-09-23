@@ -5,11 +5,13 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import com.naze.nazever.core.network.auth.NazeVerAuthRepository
 import com.naze.nazever.core.network.auth.SupabaseAuthRemoteApi
+import com.naze.nazever.core.network.session.SupabaseSessionRemoteApi
 import com.naze.nazever.core.security.SecureSessionStore
 
 /**
- * Builds the production auth stack from TASK-005 components:
- * Ktor Supabase client + EncryptedSharedPreferences session store.
+ * Builds the production auth stack from TASK-005/007 components:
+ * Ktor Supabase client + EncryptedSharedPreferences session store +
+ * server-side session management (register/refresh/revoke).
  */
 class AuthViewModelFactory(private val appContext: Context) : ViewModelProvider.Factory {
 
@@ -20,7 +22,13 @@ class AuthViewModelFactory(private val appContext: Context) : ViewModelProvider.
         }
         val store = SecureSessionStore(appContext)
         val api = SupabaseAuthRemoteApi.fromBuildConfig()
-        val repository = NazeVerAuthRepository(api, store)
+        val sessionApi = SupabaseSessionRemoteApi.fromBuildConfig()
+        val repository = NazeVerAuthRepository(
+            remoteApi = api,
+            sessionStore = store,
+            sessionApi = sessionApi,
+            deviceNameProvider = { android.os.Build.MODEL }
+        )
         return AuthViewModel(SupabaseAuthGateway(repository)) as T
     }
 }
