@@ -164,6 +164,7 @@ class AuthViewModelTest {
     fun signUpFailureShowsSafeMessage() {
         val gateway = FakeAuthGateway().apply { failSignUp = true }
         val vm = viewModel(gateway)
+        vm.goToRegister()
         vm.onEmailChange("new@example.com")
         vm.onPasswordChange("rahasia123")
         vm.onConfirmChange("rahasia123")
@@ -176,6 +177,7 @@ class AuthViewModelTest {
     fun passwordMismatchBlocksSignUp() {
         val gateway = FakeAuthGateway()
         val vm = viewModel(gateway)
+        vm.goToRegister()
         vm.onEmailChange("new@example.com")
         vm.onPasswordChange("rahasia123")
         vm.onConfirmChange("beda12345")
