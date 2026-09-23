@@ -22,5 +22,6 @@ android {
 }
 
 dependencies {
+    implementation(libs.androidx.security.crypto)
     testImplementation(libs.junit)
 }
