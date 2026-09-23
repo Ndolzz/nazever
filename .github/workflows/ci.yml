@@ -70,7 +70,16 @@ jobs:
         run: |
           for log in gradle-test.log gradle-lint.log gradle-assemble.log; do
             if [ -f "$log" ]; then
-              grep -E "^e: |error: |FAILURE: |What went wrong|Execution failed|Caused by:|Compilation error" "$log" | head -80 | while IFS= read -r line; do
+              echo "=== compile/build errors ==="
+              grep -E "^e: |error: |FAILURE: |What went wrong|Execution failed|Caused by:|Compilation error" "$log" | head -40 | while IFS= read -r line; do
+                printf '::error file=%s::%s\n' "$log" "${line:0:240}" || true
+              done
+              echo "=== failed tests ==="
+              grep -E " FAILED" "$log" | sort -u | head -8 | while IFS= read -r line; do
+                printf '::error file=%s::FAILED TEST %s\n' "$log" "${line:0:220}" || true
+              done
+              echo "=== first assertion error ==="
+              grep -E "AssertionError|ComparisonFailure|AssertError" "$log" | head -2 | while IFS= read -r line; do
                 printf '::error file=%s::%s\n' "$log" "${line:0:240}" || true
               done
             fi
