@@ -58,8 +58,14 @@ object SessionCodec {
         }
     }
 
+    /**
+     * FNV-1a 64-bit. The unsigned offset basis 0xcbf29ce484222325 does
+     * not fit in a signed Long literal, so it is written as its bitwise-
+     * identical signed decimal constant; xor/multiply wrap identically.
+     */
     private fun fnv1a(input: String): Long {
-        var hash = 0xcbf29ce484222325L
+        // Signed representation of the unsigned 0xcbf29ce484222325.
+        var hash = -3750763034362895579L
         for (c in input) {
             hash = hash xor c.code.toLong()
             hash *= 0x100000001b3L
