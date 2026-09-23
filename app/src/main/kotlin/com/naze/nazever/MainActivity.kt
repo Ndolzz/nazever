@@ -3,15 +3,25 @@ package com.naze.nazever
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
-import com.naze.nazever.ui.showcase.DesignSystemShowcase
+import androidx.lifecycle.viewmodel.compose.viewModel
+import com.naze.nazever.ui.auth.AuthRootScreen
+import com.naze.nazever.ui.auth.AuthViewModel
+import com.naze.nazever.ui.auth.AuthViewModelFactory
+import com.naze.nazever.ui.theme.NazeVerTheme
 
 /**
- * Temporary TASK-004 entry point: hosts the design-system showcase only.
- * Real navigation arrives with TASK-006+.
+ * TASK-006 entry point: hosts the authentication flow
+ * (login / register / logout placeholder home).
  */
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        setContent { DesignSystemShowcase() }
+        setContent {
+            NazeVerTheme {
+                val authViewModel: AuthViewModel =
+                    viewModel(factory = AuthViewModelFactory(application))
+                AuthRootScreen(authViewModel)
+            }
+        }
     }
 }
